@@ -119,7 +119,7 @@ const run = async() =>{
         })
 
          // find a user
-         app.get('/user',async(req, res)=>{
+         app.get('/users',async(req, res)=>{
             const filter = {email: req.query.email}
             const result = await userCollection.findOne(filter)
             res.send(result)
