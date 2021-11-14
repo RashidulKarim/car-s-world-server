@@ -101,7 +101,7 @@ const run = async() =>{
 
         // add user to database
         app.post('/users', async(req, res)=>{
-            const data = req.body;
+            const data = req.body.info;
             const result = await userCollection.insertOne(data);
             res.send(result);
         })
