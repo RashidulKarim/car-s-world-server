@@ -3,8 +3,9 @@ const app = express();
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
 const port = process.env.PORT || 5000;
-const ObjectId = require('mongodb').ObjectId
+const ObjectId = require('mongodb').ObjectId;
 require('dotenv').config();
+const stripe = require("stripe")('sk_test_51IeOhPGcru3mCo7NGYMlOofKZc7vmvnqV2l5lLXL2YaQBRg08qNCESM3Ngg8dRF73OYELD24lkaSejNrFOS38Fsh00LmMUakH7');
 
 app.use(cors())
 app.use(express.json())
@@ -63,14 +64,21 @@ const run = async() =>{
         })
         //Add order to database
         app.post("/order", async(req, res)=>{
-            const orderInfo = req.body.orderDetails   ;         
+            const orderInfo = req.body.orderDetails   ;    
+                 
             const result = await orderCollection.insertOne(orderInfo);
             res.send(result);
         })
         //find a single user order
         app.get("/orders", async(req, res)=>{
-            const query = {email: req.query.email};               
+            const query = {email: req.query.email};                           
             const result = await orderCollection.find(query).toArray();
+            res.send(result);
+        })
+        //find a order
+        app.get("/order", async(req, res)=>{
+            const query = {_id: ObjectId((req.query.id))};                           
+            const result = await orderCollection.findOne(query);
             res.send(result);
         })
         //find  all user order
@@ -93,6 +101,21 @@ const run = async() =>{
             const updateDoc = {
                 $set: {
                   status: status
+                }
+              }
+            const result = await orderCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+        // change a order status
+        app.put('/orderPayment', async(req, res)=>{
+            const id = req.query.id;
+            const orderInfo = (req.body)
+            console.log(id, orderInfo)
+            
+            const filter = {_id: ObjectId(id)};
+            const updateDoc = {
+                $set: {
+                  payment: orderInfo
                 }
               }
             const result = await orderCollection.updateOne(filter, updateDoc);
@@ -124,6 +147,25 @@ const run = async() =>{
             const result = await userCollection.findOne(filter);
             res.send(result);
          })
+
+         //stripe
+         app.post("/create-payment-intent", async (req, res) => {
+            const  items  = req.body;
+            const price = parseInt(items.carPrice);
+            console.log(price)
+            
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount: price * 100,
+              currency: "usd",
+              payment_method_types: [
+                "card"
+            ]
+            });
+          
+            res.json({
+              clientSecret: paymentIntent.client_secret,
+            });
+          });
     }
     finally{
         // client.close();
